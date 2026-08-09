@@ -7,26 +7,29 @@ export type DrugListItem = {
   activeIngredient: string;
   therapeuticClass: string;
   pregnancyCategory: string | null;
+  reviewed?: boolean;
 };
 
-export async function searchDrugs(query: string): Promise<DrugListItem[]> {
+export async function searchDrugs(query: string, reviewedOnly = false): Promise<DrugListItem[]> {
   const q = query.trim();
-  const where = q
-    ? {
-        // SQLite: LIKE já é case-insensitive para caracteres ASCII, então não
-        // usamos `mode: "insensitive"` (não suportado pelo provider sqlite).
-        OR: [
-          { name: { contains: q } },
-          { activeIngredient: { contains: q } },
-          { therapeuticClass: { contains: q } },
-        ],
-      }
-    : {};
+  const filters: any[] = [];
+  if (q) {
+    // SQLite: LIKE já é case-insensitive para caracteres ASCII (sem `mode`).
+    filters.push({
+      OR: [
+        { name: { contains: q } },
+        { activeIngredient: { contains: q } },
+        { therapeuticClass: { contains: q } },
+      ],
+    });
+  }
+  if (reviewedOnly) filters.push({ reviewed: true });
+  const where = filters.length ? { AND: filters } : {};
   return prisma.drug.findMany({
     where,
     orderBy: { activeIngredient: "asc" },
     take: 50,
-    select: { id: true, name: true, activeIngredient: true, therapeuticClass: true, pregnancyCategory: true },
+    select: { id: true, name: true, activeIngredient: true, therapeuticClass: true, pregnancyCategory: true, reviewed: true },
   });
 }
 

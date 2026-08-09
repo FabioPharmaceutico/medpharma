@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft, Baby, Activity, HeartPulse, Ban, AlertTriangle, Droplets,
-  FlaskConical, Utensils, Users, Pill, Target, Package, Archive, ShieldAlert, ShieldCheck,
+  FlaskConical, Utensils, Users, Pill, Target, Package, Archive, ShieldAlert, ShieldCheck, ExternalLink,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,14 @@ export default async function DrugDetailPage({ params }: { params: { id: string 
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`https://consultas.anvisa.gov.br/#/bulario/q/?nomeProduto=${encodeURIComponent(drug.activeIngredient)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg brand-gradient px-3 py-1.5 text-xs font-bold text-white shadow-sm"
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Bula oficial (Anvisa)
+          </a>
           {drug.pregnancyCategory && <Badge variant="outline">Gestação {drug.pregnancyCategory}</Badge>}
           {drug.reviewed ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-severity-low/30 bg-severity-low/15 px-2.5 py-0.5 text-xs font-semibold text-severity-low">
@@ -68,8 +76,9 @@ export default async function DrugDetailPage({ params }: { params: { id: string 
         <div className="flex items-start gap-2 rounded-md border border-severity-high/30 bg-severity-high/10 p-3 text-xs text-severity-high">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Registro importado por OCR do bulário e <strong>ainda não validado</strong> por farmacêutico.
-            Pode conter erros de extração. Revise em <strong>Importação</strong> antes de usar clinicamente.
+            Item do catálogo <strong>ainda não validado</strong> clinicamente (nome e classe de fonte
+            oficial; posologia/interações/RAM pendentes de curadoria farmacêutica). Para a informação
+            completa, consulte a <strong>bula oficial (Anvisa)</strong> no botão acima.
             {drug.sourceRef ? ` Fonte: ${drug.sourceRef}.` : ""}
           </p>
         </div>
