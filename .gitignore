@@ -11,4 +11,7 @@ prisma/*.db
 # Saídas de OCR do bulário (obra protegida) — não publicar
 tools/bulario/*.json
 
+# CSVs brutos baixados de fontes oficiais (não versionar o arquivo grande)
+*.csv
+
 .vercel

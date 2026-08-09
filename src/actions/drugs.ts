@@ -46,3 +46,12 @@ export async function listAllDrugsMinimal() {
     select: { id: true, name: true, activeIngredient: true, therapeuticClass: true },
   });
 }
+
+export async function getDrugsByIds(ids: string[]): Promise<DrugListItem[]> {
+  const clean = Array.from(new Set(ids)).filter(Boolean);
+  if (clean.length === 0) return [];
+  return prisma.drug.findMany({
+    where: { id: { in: clean } },
+    select: { id: true, name: true, activeIngredient: true, therapeuticClass: true, pregnancyCategory: true },
+  });
+}

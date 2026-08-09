@@ -693,9 +693,12 @@ async function syncBaseCatalog() {
   const existing = await prisma.drug.findMany({ select: { activeIngredient: true } });
   const have = new Set(existing.map((d) => d.activeIngredient));
   const missing = ALL_BASE.filter((b) => !have.has(b.ai));
-  if (missing.length > 0) {
+  // Insere em lotes (evita limite de parâmetros do Postgres em grandes volumes).
+  const CHUNK = 500;
+  for (let i = 0; i < missing.length; i += CHUNK) {
+    const batch = missing.slice(i, i + CHUNK);
     await prisma.drug.createMany({
-      data: missing.map((b) => ({
+      data: batch.map((b) => ({
         name: b.ai,
         activeIngredient: b.ai,
         therapeuticClass: b.tc,
