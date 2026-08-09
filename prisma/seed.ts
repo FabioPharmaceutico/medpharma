@@ -2,13 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import { BASE_DRUGS } from "./medicamentos-base";
 import { BASE_DRUGS_2 } from "./medicamentos-base-2";
 import { BASE_DRUGS_3 } from "./medicamentos-base-3";
+import { MEDICAMENTOS_OFICIAIS } from "./medicamentos-oficiais";
 import { INTERACTIONS_BASE } from "./interacoes-base";
 import { INTERACTIONS_BASE_2 } from "./interacoes-base-2";
 
 const ALL_INTERACTIONS_BASE = [...INTERACTIONS_BASE, ...INTERACTIONS_BASE_2];
 
 // Junta os lotes e remove duplicados por princípio ativo (evita conflitos de chave única).
-const _rawBase = [...BASE_DRUGS, ...BASE_DRUGS_2, ...BASE_DRUGS_3];
+const _rawBase = [...BASE_DRUGS, ...BASE_DRUGS_2, ...BASE_DRUGS_3, ...MEDICAMENTOS_OFICIAIS];
 const _seenAi = new Set<string>();
 const ALL_BASE = _rawBase.filter((b) => {
   if (_seenAi.has(b.ai)) return false;

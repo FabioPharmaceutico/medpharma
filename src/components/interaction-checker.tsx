@@ -1,106 +1,133 @@
 "use client";
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, X, Search, GitCompareArrows, Utensils, ShieldCheck, Loader2 } from "lucide-react";
+import { X, Search, GitCompareArrows, Utensils, ShieldCheck, Loader2, ListChecks } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SeverityBadge, SeverityDot } from "@/components/ui/severity-badge";
-import { searchDrugs, type DrugListItem } from "@/actions/drugs";
+import { listAllDrugsMinimal, type DrugListItem } from "@/actions/drugs";
 import { checkInteractions } from "@/actions/interactions";
 
-function useDebounced<T>(value: T, delay = 250) {
-  const [v, setV] = React.useState(value);
-  React.useEffect(() => {
-    const t = setTimeout(() => setV(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return v;
-}
+type PickItem = { id: string; name: string; activeIngredient: string; therapeuticClass?: string };
 
 export function InteractionChecker({ initial = [] as DrugListItem[] }) {
-  const [selected, setSelected] = React.useState<DrugListItem[]>(initial);
+  const [selected, setSelected] = React.useState<PickItem[]>(initial);
   const [term, setTerm] = React.useState("");
-  const debounced = useDebounced(term, 250);
 
-  const { data: results, isFetching: searching } = useQuery({
-    queryKey: ["drug-picker", debounced],
-    queryFn: () => searchDrugs(debounced),
-    enabled: debounced.length > 0,
+  // Carrega TODOS os medicamentos uma vez, para navegação por checkbox.
+  const { data: allDrugs, isFetching: loadingAll } = useQuery({
+    queryKey: ["all-drugs"],
+    queryFn: () => listAllDrugsMinimal(),
+    staleTime: 5 * 60_000,
   });
+
+  const selectedIds = React.useMemo(() => new Set(selected.map((s) => s.id)), [selected]);
+
+  const filtered = React.useMemo(() => {
+    const list = allDrugs ?? [];
+    const q = term.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+      (d) =>
+        d.activeIngredient.toLowerCase().includes(q) ||
+        d.name.toLowerCase().includes(q) ||
+        d.therapeuticClass.toLowerCase().includes(q)
+    );
+  }, [allDrugs, term]);
 
   const ids = selected.map((d) => d.id);
   const { data: check, isFetching: checking } = useQuery({
-    queryKey: ["check", ids.sort().join(",")],
+    queryKey: ["check", ids.slice().sort().join(",")],
     queryFn: () => checkInteractions(ids),
     enabled: ids.length >= 2,
   });
 
-  const add = (d: DrugListItem) => {
-    if (!selected.find((s) => s.id === d.id)) setSelected((p) => [...p, d]);
-    setTerm("");
+  const toggle = (d: PickItem) => {
+    setSelected((p) => (p.some((s) => s.id === d.id) ? p.filter((s) => s.id !== d.id) : [...p, d]));
   };
   const remove = (id: string) => setSelected((p) => p.filter((s) => s.id !== id));
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[400px_1fr]">
       <div className="space-y-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Lista de medicamentos</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ListChecks className="h-4 w-4 text-primary" /> Selecione os medicamentos
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              {searching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
-              <Input placeholder="Adicionar fármaco…" className="pl-10" value={term} onChange={(e) => setTerm(e.target.value)} />
+              {loadingAll && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+              <Input
+                placeholder="Filtrar por princípio ativo, nome ou classe…"
+                className="pl-10"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+              />
             </div>
 
-            {debounced && results && results.length > 0 && (
-              <div className="max-h-64 overflow-auto rounded-md border">
-                {results.map((d) => {
-                  const already = selected.some((s) => s.id === d.id);
-                  return (
-                    <button
-                      key={d.id}
-                      onClick={() => add(d)}
-                      disabled={already}
-                      className="flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-left text-sm last:border-0 hover:bg-accent disabled:opacity-40"
-                    >
-                      <span>
-                        <span className="font-medium">{d.activeIngredient}</span>
-                        <span className="text-muted-foreground"> · {d.name}</span>
-                      </span>
-                      <Plus className="h-4 w-4 shrink-0" />
+            {/* Contador + limpar */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{selected.length} selecionado(s) · {(allDrugs ?? []).length} no catálogo</span>
+              {selected.length > 0 && (
+                <button className="font-medium text-primary hover:underline" onClick={() => setSelected([])}>
+                  Limpar
+                </button>
+              )}
+            </div>
+
+            {/* Lista completa com checkbox */}
+            <div className="max-h-[420px] overflow-auto rounded-md border">
+              {filtered.length === 0 && (
+                <p className="p-4 text-center text-xs text-muted-foreground">
+                  {loadingAll ? "Carregando catálogo…" : "Nenhum medicamento encontrado."}
+                </p>
+              )}
+              {filtered.map((d) => {
+                const checked = selectedIds.has(d.id);
+                return (
+                  <label
+                    key={d.id}
+                    className={`flex cursor-pointer items-center gap-3 border-b px-3 py-2 text-sm last:border-0 hover:bg-accent ${
+                      checked ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggle({ id: d.id, name: d.name, activeIngredient: d.activeIngredient, therapeuticClass: d.therapeuticClass })}
+                      className="h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span className="min-w-0">
+                      <span className="font-medium">{d.activeIngredient}</span>
+                      <span className="block truncate text-xs text-muted-foreground">{d.therapeuticClass}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Chips dos selecionados */}
+            {selected.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {selected.map((d) => (
+                  <span key={d.id} className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs">
+                    {d.activeIngredient}
+                    <button onClick={() => remove(d.id)} className="text-muted-foreground hover:text-destructive" aria-label="Remover">
+                      <X className="h-3 w-3" />
                     </button>
-                  );
-                })}
+                  </span>
+                ))}
               </div>
             )}
 
-            <div className="space-y-2">
-              {selected.length === 0 && (
-                <p className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                  Adicione ao menos 2 medicamentos para checar as interações.
-                </p>
-              )}
-              {selected.map((d) => (
-                <div key={d.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                  <span>
-                    <span className="font-medium">{d.activeIngredient}</span>
-                    <span className="text-muted-foreground"> · {d.name}</span>
-                  </span>
-                  <button onClick={() => remove(d.id)} className="text-muted-foreground hover:text-destructive" aria-label="Remover">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {selected.length > 0 && (
-              <Button variant="ghost" size="sm" className="w-full" onClick={() => setSelected([])}>
-                Limpar lista
-              </Button>
+            {selected.length < 2 && (
+              <p className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                Marque <strong>2 ou mais</strong> para ver as interações.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -119,7 +146,7 @@ export function InteractionChecker({ initial = [] as DrugListItem[] }) {
       <div className="space-y-4">
         {ids.length < 2 && (
           <div className="flex h-40 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-            <GitCompareArrows className="mr-2 h-5 w-5" /> Aguardando 2+ medicamentos…
+            <GitCompareArrows className="mr-2 h-5 w-5" /> Marque 2+ medicamentos na lista ao lado…
           </div>
         )}
 
