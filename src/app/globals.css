@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 99%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Marca: ciano-teal vívido */
+    --primary: 187 92% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 187 92% 95%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 31% 89%;
+    --input: 214 31% 89%;
+    --ring: 187 92% 40%;
+    --radius: 0.85rem;
+
+    /* Severidade */
+    --severity-high: 349 89% 55%;
+    --severity-medium: 33 96% 50%;
+    --severity-low: 168 84% 40%;
+
+    /* Paleta vívida (variações) */
+    --c-cyan: 187 92% 42%;
+    --c-blue: 221 90% 58%;
+    --c-violet: 265 85% 62%;
+    --c-pink: 326 90% 60%;
+    --c-amber: 33 96% 52%;
+    --c-emerald: 158 78% 42%;
+
+    /* Gradiente de marca */
+    --brand-1: 187 92% 44%;
+    --brand-2: 221 90% 58%;
+    --brand-3: 275 85% 62%;
+  }
+
+  .dark {
+    --background: 224 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 223 45% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 223 45% 9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 186 92% 52%;
+    --primary-foreground: 224 47% 8%;
+    --secondary: 217 33% 16%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 66%;
+    --accent: 217 40% 18%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 186 92% 52%;
+
+    --severity-high: 349 90% 62%;
+    --severity-medium: 33 96% 58%;
+    --severity-low: 168 80% 48%;
+
+    --c-cyan: 186 92% 55%;
+    --c-blue: 221 90% 66%;
+    --c-violet: 265 90% 72%;
+    --c-pink: 326 92% 68%;
+    --c-amber: 38 96% 60%;
+    --c-emerald: 158 74% 52%;
+
+    --brand-1: 186 92% 52%;
+    --brand-2: 221 90% 64%;
+    --brand-3: 280 90% 70%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { font-size: 18px; -webkit-text-size-adjust: 100%; }
+  @media (max-width: 640px) { html { font-size: 16.5px; } }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Fundo tech: malha de pontos + brilho superior */
+    background-image:
+      radial-gradient(hsl(var(--foreground) / 0.04) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-attachment: fixed;
+  }
+  h1, h2, h3 { letter-spacing: -0.02em; }
+}
+
+@keyframes aurora {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulseGlow {
+  0%,100% { opacity: .55; transform: scale(1); }
+  50%     { opacity: 1; transform: scale(1.06); }
+}
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+@layer components {
+  .brand-gradient {
+    background-image: linear-gradient(135deg,
+      hsl(var(--brand-1)) 0%, hsl(var(--brand-2)) 50%, hsl(var(--brand-3)) 100%);
+  }
+  .brand-text {
+    background-image: linear-gradient(120deg,
+      hsl(var(--brand-1)), hsl(var(--brand-2)) 45%, hsl(var(--brand-3)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Superfície do herói: aurora animada */
+  .hero-surface {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(1100px 380px at 8% -30%, hsl(var(--brand-1) / 0.18), transparent 60%),
+      radial-gradient(900px 360px at 95% -20%, hsl(var(--brand-3) / 0.16), transparent 55%),
+      radial-gradient(700px 300px at 50% 120%, hsl(var(--brand-2) / 0.12), transparent 60%);
+  }
+  .aurora-bar {
+    background-image: linear-gradient(90deg,
+      hsl(var(--brand-1)), hsl(var(--brand-2)), hsl(var(--brand-3)), hsl(var(--brand-1)));
+    background-size: 300% 100%;
+    animation: aurora 8s ease infinite;
+  }
+
+  /* Vidro / glass */
+  .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
+
+  /* Cartão interativo com brilho e elevação */
+  .tile {
+    position: relative;
+    transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s, border-color .25s;
+    will-change: transform;
+  }
+  .tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px -18px hsl(var(--brand-2) / 0.45);
+  }
+
+  /* Chip de IA */
+  .ai-chip {
+    background: linear-gradient(135deg, hsl(var(--brand-1) / 0.14), hsl(var(--brand-3) / 0.14));
+    border: 1px solid hsl(var(--brand-2) / 0.3);
+    color: hsl(var(--brand-2));
+  }
+
+  /* Ícones de módulo por cor viva */
+  .grad-cyan    { background-image: linear-gradient(135deg, hsl(var(--c-cyan)),    hsl(var(--c-blue))); }
+  .grad-blue    { background-image: linear-gradient(135deg, hsl(var(--c-blue)),    hsl(var(--c-violet))); }
+  .grad-violet  { background-image: linear-gradient(135deg, hsl(var(--c-violet)),  hsl(var(--c-pink))); }
+  .grad-pink    { background-image: linear-gradient(135deg, hsl(var(--c-pink)),    hsl(var(--c-amber))); }
+  .grad-amber   { background-image: linear-gradient(135deg, hsl(var(--c-amber)),   hsl(var(--c-pink))); }
+  .grad-emerald { background-image: linear-gradient(135deg, hsl(var(--c-emerald)), hsl(var(--c-cyan))); }
+
+  /* Borda com gradiente animado */
+  .ring-glow {
+    box-shadow: 0 0 0 1px hsl(var(--brand-2) / 0.25), 0 10px 30px -12px hsl(var(--brand-1) / 0.35);
+  }
+  .dot { animation: pulseGlow 2.4s ease-in-out infinite; }
+}

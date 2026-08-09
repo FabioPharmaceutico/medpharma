@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+.env.*
+!.env.example
+*.log
+dist
+prisma/dev.db
+prisma/*.db
+
+# Saídas de OCR do bulário (obra protegida) — não publicar
+tools/bulario/*.json
+
+.vercel

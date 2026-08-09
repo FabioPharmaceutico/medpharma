@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Nomes definidos pela integração Vercel + Neon:
+  url       = env("POSTGRES_PRISMA_URL")      // pooled (pgbouncer) — runtime
+  directUrl = env("POSTGRES_URL_NON_POOLING") // direta — migrações/db push
+}
+
+enum Severity {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum DrugSource {
+  MANUAL      // cadastrado/curado manualmente (seed clínico)
+  BULARIO_OCR // importado do bulário via OCR (requer revisão)
+}
+
+enum PrmType {
+  DOSAGEM_INADEQUADA
+  INEFETIVIDADE
+  RAM
+  INTERACAO
+  NAO_ADESAO
+  DUPLICIDADE
+  INDICACAO_NAO_TRATADA
+}
+
+enum DoctorAcceptance {
+  ACCEPTED
+  REJECTED
+  ACCEPTED_MODIFIED
+  PENDING
+}
+
+enum InterventionStatus {
+  RESOLVED
+  MONITORING
+  UNRESOLVED
+}
+
+model Drug {
+  id                String   @id @default(cuid())
+  name              String   // nome comercial de referência
+  activeIngredient  String   // princípio ativo (DCB/INN)
+  therapeuticClass  String
+  atcCode           String?
+  pregnancyCategory String?  // A, B, C, D, X
+  lactation         String?
+  renalAdjustment   String?
+  hepaticAdjustment String?
+  geriatricNotes    String?
+  pediatricNotes    String?
+  standardPosology  String?
+  contraindications String?
+  adverseReactions  String?  // JSON string: [{ frequency, reactions[] }]
+  foodInteractions  String?
+  labInteractions   String?
+  indications       String?  // indicações (frequente no bulário)
+  presentations     String?  // apresentações comerciais
+  storage           String?  // armazenamento/conservação
+  description       String?
+
+  // Proveniência / curadoria de dados importados (ex.: bulário via OCR)
+  source            DrugSource @default(MANUAL)
+  sourceRef         String?    // ex.: "Bulário Explicativo 2ª ed. — p. 62"
+  sourcePage        Int?       // página física no PDF de origem
+  rawText           String?    // texto OCR bruto para auditoria
+  reviewed          Boolean    @default(false) // exige validação farmacêutica
+  reviewedBy        String?
+  reviewedAt        DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  interactionsA DrugInteraction[] @relation("DrugA")
+  interactionsB DrugInteraction[] @relation("DrugB")
+  interventions PharmaceuticalIntervention[]
+
+  @@unique([activeIngredient, name])
+  @@index([activeIngredient])
+  @@index([therapeuticClass])
+}
+
+model DrugInteraction {
+  id             String   @id @default(cuid())
+  drugAId        String
+  drugBId        String
+  severity       Severity
+  mechanism      String
+  clinicalEffect String
+  recommendation String
+  reference      String?
+  createdAt      DateTime @default(now())
+
+  drugA Drug @relation("DrugA", fields: [drugAId], references: [id], onDelete: Cascade)
+  drugB Drug @relation("DrugB", fields: [drugBId], references: [id], onDelete: Cascade)
+
+  @@unique([drugAId, drugBId])
+  @@index([severity])
+}
+
+model PharmaceuticalIntervention {
+  id              String             @id @default(cuid())
+  patientRef      String             // ID anônimo/interno (LGPD)
+  drugId          String?
+  drugName        String?            // snapshot textual, caso o fármaco não esteja no cadastro
+  prmType         PrmType
+  description     String
+  recommendation  String
+  doctorAcceptance DoctorAcceptance  @default(PENDING)
+  status          InterventionStatus @default(MONITORING)
+  author          String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  drug  Drug?          @relation(fields: [drugId], references: [id], onDelete: SetNull)
+  notes ClinicalNote[]
+
+  @@index([patientRef])
+  @@index([status])
+}
+
+model ClinicalNote {
+  id             String   @id @default(cuid())
+  interventionId String
+  text           String
+  author         String?
+  createdAt      DateTime @default(now())
+
+  intervention PharmaceuticalIntervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+}
