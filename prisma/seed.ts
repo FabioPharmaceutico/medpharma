@@ -3,6 +3,9 @@ import { BASE_DRUGS } from "./medicamentos-base";
 import { BASE_DRUGS_2 } from "./medicamentos-base-2";
 import { BASE_DRUGS_3 } from "./medicamentos-base-3";
 import { INTERACTIONS_BASE } from "./interacoes-base";
+import { INTERACTIONS_BASE_2 } from "./interacoes-base-2";
+
+const ALL_INTERACTIONS_BASE = [...INTERACTIONS_BASE, ...INTERACTIONS_BASE_2];
 
 // Junta os lotes e remove duplicados por princípio ativo (evita conflitos de chave única).
 const _rawBase = [...BASE_DRUGS, ...BASE_DRUGS_2, ...BASE_DRUGS_3];
@@ -717,7 +720,7 @@ async function syncInteractions() {
     mechanism: string; clinicalEffect: string; recommendation: string; reference: string | null;
   }[] = [];
   const seen = new Set<string>();
-  for (const it of INTERACTIONS_BASE) {
+  for (const it of ALL_INTERACTIONS_BASE) {
     const aId = idByAi.get(it.a);
     const bId = idByAi.get(it.b);
     if (!aId || !bId) continue; // fármaco ausente no catálogo — ignora
@@ -805,7 +808,7 @@ async function main() {
   console.log(`Inserindo interações...`);
   let count = 0;
   const seen = new Set<string>();
-  for (const it of [...interactions, ...INTERACTIONS_BASE]) {
+  for (const it of [...interactions, ...ALL_INTERACTIONS_BASE]) {
     const aId = idByIngredient.get(it.a);
     const bId = idByIngredient.get(it.b);
     if (!aId || !bId) {
