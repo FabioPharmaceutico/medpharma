@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
 import { PwaRegister } from "@/components/pwa-register";
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <SiteNav />
           <main className="container py-6">{children}</main>
+          <SiteFooter />
         </Providers>
         <PwaRegister />
       </body>
