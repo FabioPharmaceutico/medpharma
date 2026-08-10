@@ -4,14 +4,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function listPendingImports() {
   return prisma.drug.findMany({
-    where: { source: "BULARIO_OCR", reviewed: false },
+    where: { source: { in: ["BULARIO_OCR", "CURADORIA"] }, reviewed: false },
     orderBy: { activeIngredient: "asc" },
   });
 }
 
 export async function countPendingImports() {
   try {
-    return await prisma.drug.count({ where: { source: "BULARIO_OCR", reviewed: false } });
+    return await prisma.drug.count({
+      where: { source: { in: ["BULARIO_OCR", "CURADORIA"] }, reviewed: false },
+    });
   } catch {
     return 0;
   }

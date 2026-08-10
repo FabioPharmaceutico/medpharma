@@ -28,9 +28,13 @@ export async function searchDrugs(query: string, reviewedOnly = false): Promise<
   return prisma.drug.findMany({
     where,
     orderBy: { activeIngredient: "asc" },
-    take: 50,
+    take: 100,
     select: { id: true, name: true, activeIngredient: true, therapeuticClass: true, pregnancyCategory: true, reviewed: true },
   });
+}
+
+export async function countDrugs(reviewedOnly = false): Promise<number> {
+  return prisma.drug.count({ where: reviewedOnly ? { reviewed: true } : {} });
 }
 
 export async function getDrug(id: string) {

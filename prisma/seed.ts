@@ -5,6 +5,9 @@ import { BASE_DRUGS_3 } from "./medicamentos-base-3";
 import { MEDICAMENTOS_OFICIAIS } from "./medicamentos-oficiais";
 import { INTERACTIONS_BASE } from "./interacoes-base";
 import { INTERACTIONS_BASE_2 } from "./interacoes-base-2";
+import { CURADORIA_LOTE_1 } from "./curadoria-lote-1";
+
+const CURADORIA = [...CURADORIA_LOTE_1];
 
 const ALL_INTERACTIONS_BASE = [...INTERACTIONS_BASE, ...INTERACTIONS_BASE_2];
 
@@ -743,6 +746,36 @@ async function syncInteractions() {
   console.log(`Interações sincronizadas: +${toCreate.length} novas. Total: ${total}.`);
 }
 
+// Aplica rascunhos de curadoria (conteúdo clínico) a fármacos existentes, sem
+// sobrescrever os já validados. Entram como reviewed=false + source=CURADORIA,
+// aparecendo na fila de validação (aba Importação) para o farmacêutico aprovar.
+async function syncCuratedDrafts() {
+  let updated = 0, created = 0;
+  for (const c of CURADORIA) {
+    const data: any = {
+      indications: c.indicacoes ?? null,
+      standardPosology: c.posologia ?? null,
+      contraindications: c.contraindicacoes ?? null,
+      adverseReactions: c.ram ?? null,
+      source: "CURADORIA",
+      reviewed: false,
+    };
+    if (c.gestacao) data.pregnancyCategory = c.gestacao;
+    const existing = await prisma.drug.findFirst({ where: { activeIngredient: c.ai } });
+    if (existing) {
+      if (existing.reviewed) continue; // não sobrescreve já validados
+      await prisma.drug.update({ where: { id: existing.id }, data });
+      updated++;
+    } else {
+      await prisma.drug.create({
+        data: { name: c.ai, activeIngredient: c.ai, therapeuticClass: "(a classificar)", ...data },
+      });
+      created++;
+    }
+  }
+  console.log(`Curadoria (lote 1): ${updated} atualizados, ${created} criados — pendentes de validação.`);
+}
+
 async function main() {
   // Proteção: só popula se o banco estiver vazio (evita apagar dados em
   // publicações futuras). Use SEED_FORCE=1 para forçar o repopulamento.
@@ -751,6 +784,7 @@ async function main() {
     console.log(`Banco já possui ${existing} medicamentos — fazendo apenas sincronização do catálogo e interações (sem apagar).`);
     await syncBaseCatalog();
     await syncInteractions();
+    await syncCuratedDrafts();
     return;
   }
 
@@ -855,6 +889,8 @@ async function main() {
       notes: { create: [{ text: "Médico concordou; nova coleta de INR agendada.", author: "Farmacêutico clínico" }] },
     },
   });
+
+  await syncCuratedDrafts();
 
   console.log("Seed concluído com sucesso.");
 }

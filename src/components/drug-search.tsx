@@ -6,7 +6,7 @@ import { Search, Loader2, Pill, GitCompareArrows, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { searchDrugs } from "@/actions/drugs";
+import { searchDrugs, countDrugs } from "@/actions/drugs";
 
 function useDebounced<T>(value: T, delay = 250) {
   const [v, setV] = React.useState(value);
@@ -24,9 +24,16 @@ export function DrugSearch() {
   const [reviewedOnly, setReviewedOnly] = React.useState(false);
   const [selected, setSelected] = React.useState<Sel[]>([]);
   const debounced = useDebounced(term, 250);
+  const { data: total } = useQuery({
+    queryKey: ["drug-count", reviewedOnly],
+    queryFn: () => countDrugs(reviewedOnly),
+    staleTime: 5 * 60_000,
+  });
+  const enabled = debounced.trim().length > 0 || reviewedOnly;
   const { data, isFetching } = useQuery({
     queryKey: ["drugs", debounced, reviewedOnly],
     queryFn: () => searchDrugs(debounced, reviewedOnly),
+    enabled,
   });
 
   const selectedIds = React.useMemo(() => new Set(selected.map((s) => s.id)), [selected]);
@@ -50,7 +57,8 @@ export function DrugSearch() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          Marque os <strong>checkboxes</strong> para selecionar 2 ou mais e checar as interações entre eles.
+          {typeof total === "number" ? <><strong>{total.toLocaleString("pt-BR")}</strong> medicamentos no catálogo. </> : null}
+          Digite para buscar; marque os <strong>checkboxes</strong> para checar interações entre 2 ou mais.
         </p>
         <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium">
           <input
@@ -63,9 +71,23 @@ export function DrugSearch() {
         </label>
       </div>
 
-      {data && data.length === 0 && (
+      {!enabled && (
+        <p className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <Search className="mx-auto mb-2 h-6 w-6 opacity-60" />
+          Comece a digitar para buscar entre os {typeof total === "number" ? total.toLocaleString("pt-BR") : "milhares de"} medicamentos
+          (por princípio ativo, nome comercial ou classe). Ex.: <em>paracetamol</em>, <em>losartana</em>, <em>omeprazol</em>.
+        </p>
+      )}
+
+      {enabled && data && data.length === 0 && !isFetching && (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Nenhum medicamento encontrado{debounced ? ` para “${debounced}”` : ""}.
+        </p>
+      )}
+
+      {enabled && data && data.length === 100 && (
+        <p className="text-center text-xs text-muted-foreground">
+          Mostrando os primeiros 100 resultados — refine a busca para encontrar mais.
         </p>
       )}
 
