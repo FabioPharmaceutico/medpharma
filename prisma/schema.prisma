@@ -106,3 +106,14 @@ model ClinicalNote {
 
   intervention PharmaceuticalIntervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
 }
+
+model Suggestion {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?
+  category  String   @default("SUGESTAO") // DICA | CRITICA | SUGESTAO
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
