@@ -18,6 +18,7 @@ enum Severity {
 enum DrugSource {
   MANUAL      // cadastrado/curado manualmente (seed clínico)
   BULARIO_OCR // importado do bulário via OCR (requer revisão)
+  CURADORIA   // rascunho de curadoria assistida (pendente de validação)
 }
 
 enum PrmType {
